@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            padding: 20px;
+            text-align: center; /* Center all content */
+        }
+        h2 { color: #004080; }
+        p { font-size: 16px; }
+        #map { margin-top: 20px; }
+        img.qr-code {
+            display: block;
+            margin: 20px auto; /* centers the image */
+        }
+    </style>
+</head>
+<body>
+    <h2>Welcome, {{ name }}</h2>
+    <p>Your Tourist ID: {{ user.tourist_id }}</p>
+
+    <!-- QR Code centered -->
+    <img class="qr-code" src="{{ url_for('static', filename='qrcodes/' + user.tourist_id + '.png') }}" width="200">
+
+    <p id="safety-score">Safety Score: {{ user.safety_score }}</p>
+    <p id="latitude">Latitude: --</p>
+    <p id="longitude">Longitude: --</p>
+
+    <script>
+        function sendLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+
+                        document.getElementById("latitude").innerText = "Latitude: " + lat;
+                        document.getElementById("longitude").innerText = "Longitude: " + lng;
+
+                        const data = { latitude: lat, longitude: lng };
+
+                        fetch('/update_location', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(data)
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            console.log('Location updated:', result);
+                            document.getElementById("safety-score").innerText = "Safety Score: " + result.safety_score;
+                        })
+                        .catch(err => console.error(err));
+                    },
+                    function(error) {
+                        console.error("Geolocation error:", error);
+                        alert("Cannot access location: " + error.message);
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Call once immediately
+        sendLocation();
+        // Then every 10 seconds
+        setInterval(sendLocation, 10000);
+    </script>
+</body>
+</html>
